@@ -3,8 +3,7 @@
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
     { "source": "/dashboard", "destination": "/pages/dashboard.html" },
-    { "source": "/admin", "destination": "/pages/admin.html" },
-    { "source": "/reader", "destination": "/upload/reader.html" }
+    { "source": "/admin", "destination": "/pages/admin.html" }
   ],
   "headers": [
     {

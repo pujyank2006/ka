@@ -286,7 +286,26 @@
     }
 
     function openReader(bookId) {
-      window.location.href = `../upload/reader.html?id=${bookId}`;
+      // Directly open PDF in new tab
+      (async () => {
+        try {
+          const { data: book, error } = await supabaseClient.from('books').select('pdf_url').eq('id', bookId).single();
+          if (error || !book) {
+            showToast('Book not found', 'error');
+            return;
+          }
+
+          const { data: signed, error: signedError } = await supabaseClient.storage.from('books-pdf').createSignedUrl(book.pdf_url, 3600);
+          if (signedError || !signed?.signedUrl) {
+            showToast('Failed to load book', 'error');
+            return;
+          }
+
+          window.open(signed.signedUrl, '_blank');
+        } catch (err) {
+          showToast('Error loading book: ' + err.message, 'error');
+        }
+      })();
     }
       // ── Wishlist ───────────────────────────────────────────────
       async function loadWishlist() {
@@ -322,7 +341,7 @@
         <div class="wishlist-title">${b.title}</div>
         <div class="wishlist-author">by ${b.author}</div>
         <div style="margin-top:.5rem;display:flex;gap:.5rem;">
-          <button class="btn btn-primary btn-sm" onclick="window.location.href='../upload/reader.html?id=${b.id}'">Read</button>
+          <button class="btn btn-primary btn-sm" onclick="openReader('${b.id}')">Read</button>
           <button class="btn btn-ghost btn-sm" onclick="toggleWishlistGlobal('${b.id}')">Remove</button>
         </div>
       </div>
@@ -346,7 +365,7 @@
         btn.disabled = true; btn.textContent = 'Uploading…';
 
         try {
-          // Upload PDF to private bucket, store the object path, and resolve it later in the reader
+          // Upload PDF to private bucket, store the object path, and resolve signed URLs when reading
           const pdfPath = `requests/${currentUser.id}/${Date.now()}_${pdfFile.name}`;
           const { error: pdfErr } = await supabaseClient.storage.from('books-pdf').upload(pdfPath, pdfFile);
           if (pdfErr) throw pdfErr;

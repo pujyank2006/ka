@@ -3,9 +3,9 @@
 ## What was fixed
 - Improved environment variable detection in `js/config.js`.
 - Fixed drag-and-drop upload so dropped files populate the upload inputs.
-- Updated PDF storage handling for private Supabase `books-pdf` uploads by storing object paths and resolving signed URLs in the reader.
+- Updated PDF storage handling for private Supabase `books-pdf` uploads by storing object paths and resolving signed URLs directly in the app.
 - Added safer admin approval error handling.
-- Verified routing uses clean URLs for `/dashboard`, `/admin`, and `/reader` via `vercel.json`.
+- Verified routing uses clean URLs for `/dashboard` and `/admin` via `vercel.json`.
 
 ---
 
@@ -59,7 +59,6 @@ npx http-server . -p 3000
 - Login page: `/index.html`
 - Dashboard: `/pages/dashboard.html` or `/dashboard` when using `vercel dev`
 - Admin page: `/pages/admin.html` or `/admin` when using `vercel dev`
-- Reader page: `/upload/reader.html?id=<book-id>` or `/reader?id=<book-id>` with `vercel dev`
 
 ---
 
@@ -77,13 +76,11 @@ npx http-server . -p 3000
    - approve/reject requests
    - upload books directly
 6. Test reading a book:
-   - click `Read Now`
-   - navigate pages
-   - add notes and bookmarks
+   - click `Read Now` to open the PDF in a new tab
 
 ---
 
 ## Notes
 - The app is static and does not need `npm install` unless you want `vercel` or a helper server.
-- The reader uses Supabase signed URLs for private book PDFs.
-- If you prefer, run with `vercel dev` so rewrite routes like `/dashboard`, `/admin`, and `/reader` work exactly like deployment.
+- PDFs are accessed via Supabase signed URLs for private storage.
+- If you prefer, run with `vercel dev` so rewrite routes like `/dashboard` and `/admin` work exactly like deployment.

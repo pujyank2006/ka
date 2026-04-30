@@ -312,6 +312,26 @@
       openModal('reviewModal');
     };
 
+    window.openBookPDF = async function (bookId) {
+      try {
+        const { data: book, error } = await supabaseClient.from('books').select('pdf_url').eq('id', bookId).single();
+        if (error || !book) {
+          showToast('Book not found', 'error');
+          return;
+        }
+
+        const { data: signed, error: signedError } = await supabaseClient.storage.from('books-pdf').createSignedUrl(book.pdf_url, 3600);
+        if (signedError || !signed?.signedUrl) {
+          showToast('Failed to load book', 'error');
+          return;
+        }
+
+        window.open(signed.signedUrl, '_blank');
+      } catch (err) {
+        showToast('Error loading book: ' + err.message, 'error');
+      }
+    };
+
     document.getElementById('approveBtn').addEventListener('click', async () => {
       if (!currentReviewId) return;
       const { data, error: requestErr } = await supabaseClient.from('book_requests').select('*').eq('id', currentReviewId).single();
@@ -383,7 +403,7 @@
             <td><span class="status-badge ${b.status}">${b.status}</span></td>
             <td>${new Date(b.created_at).toLocaleDateString()}</td>
             <td>
-              <button class="btn btn-ghost btn-sm" onclick="window.open('../upload/reader.html?id=${b.id}', '_blank')">Read</button>
+              <button class="btn btn-ghost btn-sm" onclick="openBookPDF('${b.id}')">Read</button>
               <button class="btn btn-ghost btn-sm" style="color:#e74c3c;border-color:#e74c3c;" onclick="confirmDeleteBook('${b.id}')">Delete</button>
             </td>
           </tr>
@@ -461,7 +481,7 @@
       try {
         const pdfPath = `books/${Date.now()}_${pdfFile.name}`;
         await supabaseClient.storage.from('books-pdf').upload(pdfPath, pdfFile);
-        const { data: { publicUrl: pdfUrl } } = supabaseClient.storage.from('books-pdf').getPublicUrl(pdfPath);
+        const pdfUrl = pdfPath;
 
         let coverUrl = null;
         if (coverFile) {
