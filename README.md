@@ -29,12 +29,12 @@ Open `js/config.js` and replace placeholder values with your Supabase/EmailJS cr
 - `EMAILJS_TEMPLATE_ID` (optional)
 - `EMAILJS_PUBLIC_KEY` (optional)
 
-> `env.js` is ignored by git for local safety, so it is not deployed automatically. For Vercel deployment, use Vercel Environment Variables and the build-time generator.
+> `env.js` is ignored by git for local safety, so it is not deployed automatically. For Vercel deployment, the build generates a config module from environment variables.
 
 ### 2a. Vercel deployment
 1. Add the same environment variables in the Vercel dashboard under Project → Settings → Environment Variables.
 2. Ensure `SUPABASE_URL` and `SUPABASE_ANON_KEY` are defined for production.
-3. Vercel will generate `env.js` at deploy time using `vercel-build`.
+3. Vercel will generate `js/generated-config.js` at deploy time using `npm run build` / `vercel-build`.
 
 > If you run locally without replacing these values, the app will warn in the browser console.
 ### 3. Run a local static server

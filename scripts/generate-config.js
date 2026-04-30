@@ -21,10 +21,10 @@ for (const key of keys) {
   }
 }
 
-const output = `window.ENV = ${JSON.stringify(env, null, 2)};\n`;
-const outputPath = path.join(process.cwd(), 'env.js');
+const output = `export const GENERATED_CONFIG = ${JSON.stringify(env, null, 2)};\n`;
+const outputPath = path.join(process.cwd(), 'js', 'generated-config.js');
 fs.writeFileSync(outputPath, output, 'utf8');
-console.log(`Generated ${outputPath}`);
+console.log(`Generated ${path.relative(process.cwd(), outputPath)}`);
 if (missing.length) {
   console.warn(`Warning: missing environment variables: ${missing.join(', ')}`);
 }
