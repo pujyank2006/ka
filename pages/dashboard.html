@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PageTurner — Dashboard</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-brand">Page<span>Turner</span></div>
+
+    <div class="navbar-center">
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input id="searchInput" type="text" class="search-input" placeholder="Search books, authors…" />
+      </div>
+    </div>
+
+    <div class="navbar-actions">
+      <!-- Theme Toggle -->
+      <div class="theme-toggle">
+        <button class="theme-btn" data-theme="light">☀ Light</button>
+        <button class="theme-btn" data-theme="dark">🌙 Dark</button>
+        <button class="theme-btn" data-theme="vintage">📜 Vintage</button>
+      </div>
+
+      <!-- Wishlist -->
+      <button class="btn btn-ghost btn-sm" id="wishlistBtn" title="Wishlist">❤ Wishlist</button>
+
+      <!-- Upload -->
+      <button class="btn btn-outline btn-sm" id="uploadBtn">＋ Upload Book</button>
+
+      <!-- User Menu -->
+      <div class="dropdown">
+        <div class="avatar-btn" data-dropdown-trigger id="avatarBtn">U</div>
+        <div class="dropdown-menu">
+          <div class="dropdown-item" id="profileLabel"
+            style="font-weight:700;cursor:default;color:var(--text-primary);">My Account</div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" id="myBooksBtn">📚 My Uploads</button>
+          <button class="dropdown-item" id="signOutBtn">🚪 Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main-content">
+
+    <!-- Genre Filter -->
+    <div class="genre-filter" id="genreFilter">
+      <span style="font-size:.8rem;font-weight:700;color:var(--text-muted);margin-right:.25rem;">Filter:</span>
+    </div>
+
+    <!-- Books Grid -->
+    <div class="section-header">
+      <h2 class="section-title">Library</h2>
+      <span class="section-count" id="bookCount"></span>
+    </div>
+    <div id="booksGrid" class="books-grid"></div>
+  </div>
+
+  <!-- WISHLIST PANEL -->
+  <div class="panel-overlay" id="wishlistPanel">
+    <div class="panel">
+      <div class="panel-header">
+        <h3 class="panel-title">❤ Wishlist</h3>
+        <button class="modal-close" id="closeWishlist">✕</button>
+      </div>
+      <div class="panel-body" id="wishlistBody">
+        <div class="empty-state">
+          <div class="empty-state-icon">❤</div>
+          <h3>Your wishlist is empty</h3>
+          <p>Hover a book and click the heart icon!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPLOAD MODAL -->
+  <div class="modal-overlay" id="uploadModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Upload a Book</h3>
+        <button class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1.25rem;">Your submission will be reviewed by
+          an admin before it appears in the library.</p>
+        <div class="form-group">
+          <label class="form-label">Book Title *</label>
+          <input id="upTitle" type="text" class="form-input" placeholder="e.g. The Alchemist" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Author *</label>
+          <input id="upAuthor" type="text" class="form-input" placeholder="e.g. Paulo Coelho" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea id="upDesc" class="form-textarea" placeholder="Brief summary of the book…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Genre(s)</label>
+          <div class="genre-checkboxes" id="uploadGenreChecks"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Book PDF *</label>
+          <label class="file-upload-area" id="pdfUploadArea">
+            <input type="file" id="pdfFile" accept=".pdf" />
+            <div class="file-upload-icon">📄</div>
+            <div class="file-upload-text">Click or drag a PDF here</div>
+            <div class="file-name" id="pdfFileName"></div>
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cover Image (optional)</label>
+          <label class="file-upload-area" id="coverUploadArea">
+            <input type="file" id="coverFile" accept="image/*" />
+            <div class="file-upload-icon">🖼</div>
+            <div class="file-upload-text">Click or drag an image here</div>
+            <div class="file-name" id="coverFileName"></div>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost modal-close">Cancel</button>
+        <button class="btn btn-primary" id="submitUpload">Submit for Review</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MY UPLOADS MODAL -->
+  <div class="modal-overlay" id="myUploadsModal">
+    <div class="modal" style="max-width:640px;">
+      <div class="modal-header">
+        <h3 class="modal-title">My Upload Requests</h3>
+        <button class="modal-close">✕</button>
+      </div>
+      <div class="modal-body" id="myUploadsBody">
+        <div class="empty-state">
+          <div class="empty-state-icon">📦</div>
+          <h3>No uploads yet</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container"></div>
+
+  <script type="module">
+    import { CONFIG, supabaseClient } from '../js/config.js';
+    import { initTheme, applyTheme, setupThemeButtons, showToast, openModal, closeModal, setupModals, setupDropdowns, renderSkeletons, openPanel, closePanel } from '../js/ui.js';
+    import { requireAuth, getUserProfile, signOut } from '../js/auth.js';
+
+    const GENRES = ['Fiction', 'Non-Fiction', 'Mystery', 'Thriller', 'Romance', 'Sci-Fi', 'Fantasy', 'Biography', 'History', 'Self-Help', 'Science', 'Philosophy', 'Poetry', 'Children', 'Horror', 'Adventure', 'Classics', 'Comics'];
+
+    let currentUser = null;
+    let currentProfile = null;
+    let allBooks = [];
+    let wishlistIds = new Set();
+    let activeGenres = new Set();
+
+    // ── Init ──────────────────────────────────────────────────
+    async function init() {
+      initTheme();
+      setupThemeButtons();
+      setupModals();
+      setupDropdowns();
+
+      currentUser = await requireAuth();
+      if (!currentUser) return;
+      currentProfile = await getUserProfile(currentUser.id);
+
+      // Avatar initials
+      const initial = (currentProfile?.username || currentUser.email || 'U')[0].toUpperCase();
+      document.getElementById('avatarBtn').textContent = initial;
+      document.getElementById('profileLabel').textContent = currentProfile?.username || currentUser.email;
+
+      renderGenreFilter();
+      renderUploadGenres();
+      await loadWishlist();
+      await loadBooks();
+      setupEvents();
+      emailjs.init(CONFIG.EMAILJS_PUBLIC_KEY);
+    }
+
+    // ── Genre Filter ───────────────────────────────────────────
+    function renderGenreFilter() {
+      const container = document.getElementById('genreFilter');
+      GENRES.forEach(g => {
+        const chip = document.createElement('label');
+        chip.className = 'genre-chip';
+        chip.innerHTML = `<input type="checkbox" value="${g}"/>${g}`;
+        chip.querySelector('input').addEventListener('change', e => {
+          e.target.checked ? activeGenres.add(g) : activeGenres.delete(g);
+          renderBooks(filterBooks());
+        });
+        container.appendChild(chip);
+      });
+    }
+
+    function renderUploadGenres() {
+      const container = document.getElementById('uploadGenreChecks');
+      GENRES.forEach(g => {
+        const label = document.createElement('label');
+        label.className = 'genre-check-item';
+        label.innerHTML = `<input type="checkbox" value="${g}"/>${g}`;
+        container.appendChild(label);
+      });
+    }
+
+    // ── Books ──────────────────────────────────────────────────
+    async function loadBooks() {
+      renderSkeletons(document.getElementById('booksGrid'));
+      const { data, error } = await supabaseClient
+        .from('books').select('*').eq('status', 'approved').order('created_at', { ascending: false });
+      if (error) { showToast('Failed to load books', 'error'); return; }
+      allBooks = data || [];
+      renderBooks(allBooks);
+    }
+
+    function filterBooks() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      return allBooks.filter(b => {
+        const matchSearch = !q || b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q);
+        const matchGenre = activeGenres.size === 0 || (b.genre || []).some(g => activeGenres.has(g));
+        return matchSearch && matchGenre;
+      });
+    }
+
+    function renderBooks(books) {
+      const grid = document.getElementById('booksGrid');
+      document.getElementById('bookCount').textContent = `${books.length} book${books.length !== 1 ? 's' : ''}`;
+
+      if (!books.length) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-state-icon">📚</div>
+      <h3>No books found</h3>
+      <p>Try a different search or genre filter.</p>
+    </div>`;
+        return;
+      }
+
+      grid.innerHTML = books.map(b => {
+        const wishlisted = wishlistIds.has(b.id);
+        const cover = b.cover_url
+          ? `<img class="book-cover" src="${b.cover_url}" alt="${b.title}" loading="lazy"/>`
+          : `<div class="book-cover-placeholder">📖<span>${b.title}</span></div>`;
+        const genres = (b.genre || []).map(g => `<span class="book-genre-tag">${g}</span>`).join('');
+        const desc = b.description || 'No description available.';
+        return `
+    <div class="book-card" data-id="${b.id}">
+      ${cover}
+      <button class="wishlist-icon ${wishlisted ? 'wishlisted' : ''}" data-wl="${b.id}" title="${wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}">
+        ${wishlisted ? '❤' : '🤍'}
+      </button>
+      <div class="book-description-overlay">
+        <h4>${b.title}</h4>
+        <p>${desc}</p>
+        <div class="overlay-actions">
+          <button class="overlay-btn primary" data-read="${b.id}">Read Now</button>
+          <button class="overlay-btn" data-wl-overlay="${b.id}">${wishlisted ? '❤ Saved' : '🤍 Wishlist'}</button>
+        </div>
+      </div>
+      <div class="book-info">
+        <div class="book-title">${b.title}</div>
+        <div class="book-author">by ${b.author}</div>
+        <div class="book-genres">${genres}</div>
+      </div>
+    </div>`;
+      }).join('');
+
+      // Events on cards
+      grid.querySelectorAll('[data-read]').forEach(btn =>
+        btn.addEventListener('click', e => { e.stopPropagation(); openReader(btn.dataset.read); }));
+      grid.querySelectorAll('[data-wl], [data-wl-overlay]').forEach(btn =>
+        btn.addEventListener('click', e => { e.stopPropagation(); toggleWishlist(btn.dataset.wl || btn.dataset.wlOverlay); }));
+      grid.querySelectorAll('.book-card').forEach(card =>
+        card.addEventListener('click', () => openReader(card.dataset.id)));
+    }
+
+    function openReader(bookId) {
+      window.location.href = `../upload/reader.html?id=${bookId}`;
+    }
+      // ── Wishlist ───────────────────────────────────────────────
+      async function loadWishlist() {
+        const { data } = await supabaseClient.from('wishlists').select('book_id').eq('user_id', currentUser.id);
+        wishlistIds = new Set((data || []).map(r => r.book_id));
+      }
+
+      async function toggleWishlist(bookId) {
+        if (wishlistIds.has(bookId)) {
+          await supabaseClient.from('wishlists').delete().eq('user_id', currentUser.id).eq('book_id', bookId);
+          wishlistIds.delete(bookId);
+          showToast('Removed from wishlist', 'info');
+        } else {
+          await supabaseClient.from('wishlists').insert({ user_id: currentUser.id, book_id: bookId });
+          wishlistIds.add(bookId);
+          showToast('Added to wishlist ❤', 'success');
+        }
+        renderBooks(filterBooks());
+        if (document.getElementById('wishlistPanel').classList.contains('open')) renderWishlistPanel();
+      }
+
+      async function renderWishlistPanel() {
+        const body = document.getElementById('wishlistBody');
+        if (!wishlistIds.size) {
+          body.innerHTML = `<div class="empty-state"><div class="empty-state-icon">❤</div><h3>Your wishlist is empty</h3><p>Hover a book and click the heart icon!</p></div>`;
+          return;
+        }
+        const wlBooks = allBooks.filter(b => wishlistIds.has(b.id));
+        body.innerHTML = wlBooks.map(b => `
+    <div class="wishlist-book-item">
+      ${b.cover_url ? `<img class="wishlist-cover" src="${b.cover_url}" alt="${b.title}"/>` : `<div class="wishlist-cover" style="background:var(--bg-sidebar);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📖</div>`}
+      <div class="wishlist-info">
+        <div class="wishlist-title">${b.title}</div>
+        <div class="wishlist-author">by ${b.author}</div>
+        <div style="margin-top:.5rem;display:flex;gap:.5rem;">
+          <button class="btn btn-primary btn-sm" onclick="window.location.href='../upload/reader.html?id=${b.id}'">Read</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleWishlistGlobal('${b.id}')">Remove</button>
+        </div>
+      </div>
+    </div>`).join('');
+      }
+
+      window.toggleWishlistGlobal = toggleWishlist;
+
+      // ── Upload ─────────────────────────────────────────────────
+      async function handleUpload() {
+        const title = document.getElementById('upTitle').value.trim();
+        const author = document.getElementById('upAuthor').value.trim();
+        const desc = document.getElementById('upDesc').value.trim();
+        const pdfFile = document.getElementById('pdfFile').files[0];
+        const coverFile = document.getElementById('coverFile').files[0];
+        const genres = [...document.querySelectorAll('#uploadGenreChecks input:checked')].map(i => i.value);
+
+        if (!title || !author || !pdfFile) { showToast('Title, author and PDF are required', 'error'); return; }
+
+        const btn = document.getElementById('submitUpload');
+        btn.disabled = true; btn.textContent = 'Uploading…';
+
+        try {
+          // Upload PDF to private bucket, store the object path, and resolve it later in the reader
+          const pdfPath = `requests/${currentUser.id}/${Date.now()}_${pdfFile.name}`;
+          const { error: pdfErr } = await supabaseClient.storage.from('books-pdf').upload(pdfPath, pdfFile);
+          if (pdfErr) throw pdfErr;
+          const pdfUrl = pdfPath;
+
+          // Upload Cover (optional)
+          let coverUrl = null;
+          if (coverFile) {
+            const coverPath = `covers/${currentUser.id}/${Date.now()}_${coverFile.name}`;
+            await supabaseClient.storage.from('book-covers').upload(coverPath, coverFile);
+            const { data: { publicUrl } } = supabaseClient.storage.from('book-covers').getPublicUrl(coverPath);
+            coverUrl = publicUrl;
+          }
+
+          // Insert book_request
+          const { error: reqErr } = await supabaseClient.from('book_requests').insert({
+            title, author, description: desc, genre: genres,
+            pdf_url: pdfUrl, cover_url: coverUrl,
+            requested_by: currentUser.id,
+            requester_email: currentUser.email,
+            status: 'pending'
+          });
+          if (reqErr) throw reqErr;
+
+          // Email admin via EmailJS
+          try {
+            await emailjs.send(CONFIG.EMAILJS_SERVICE_ID, CONFIG.EMAILJS_TEMPLATE_ID, {
+              to_email: CONFIG.ADMIN_EMAIL,
+              from_name: currentProfile?.username || currentUser.email,
+              book_title: title,
+              book_author: author,
+              book_genre: genres.join(', '),
+              requester_email: currentUser.email,
+              message: `A new book upload request has been submitted.\n\nTitle: ${title}\nAuthor: ${author}\nGenres: ${genres.join(', ')}\nSubmitted by: ${currentUser.email}`
+            });
+          } catch (emailErr) { console.warn('Email notification failed:', emailErr); }
+
+          closeModal('uploadModal');
+          showToast('Book submitted for review! Admin will be notified. ✅', 'success', 5000);
+          // Reset form
+          ['upTitle', 'upAuthor', 'upDesc'].forEach(id => document.getElementById(id).value = '');
+          document.getElementById('pdfFile').value = '';
+          document.getElementById('coverFile').value = '';
+          document.getElementById('pdfFileName').textContent = '';
+          document.getElementById('coverFileName').textContent = '';
+          document.querySelectorAll('#uploadGenreChecks input').forEach(i => i.checked = false);
+        } catch (err) {
+          showToast(err.message || 'Upload failed', 'error');
+        } finally {
+          btn.disabled = false; btn.textContent = 'Submit for Review';
+        }
+      }
+
+      // ── My Uploads ─────────────────────────────────────────────
+      async function loadMyUploads() {
+        const { data } = await supabaseClient.from('book_requests').select('*').eq('requested_by', currentUser.id).order('created_at', { ascending: false });
+        const body = document.getElementById('myUploadsBody');
+        if (!data?.length) { body.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📦</div><h3>No uploads yet</h3></div>`; return; }
+        body.innerHTML = `<div class="admin-table-wrapper"><table class="admin-table">
+    <thead><tr><th>Title</th><th>Author</th><th>Date</th><th>Status</th></tr></thead>
+    <tbody>${data.map(r => `<tr>
+      <td><strong>${r.title}</strong></td>
+      <td>${r.author}</td>
+      <td>${new Date(r.created_at).toLocaleDateString()}</td>
+      <td><span class="status-badge ${r.status}">${r.status}</span></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+      }
+
+      // ── Events ─────────────────────────────────────────────────
+      function setupEvents() {
+        document.getElementById('searchInput').addEventListener('input', () => renderBooks(filterBooks()));
+        document.getElementById('wishlistBtn').addEventListener('click', () => { renderWishlistPanel(); openPanel('wishlistPanel'); });
+        document.getElementById('closeWishlist').addEventListener('click', () => closePanel('wishlistPanel'));
+        document.getElementById('wishlistPanel').addEventListener('click', e => { if (e.target === document.getElementById('wishlistPanel')) closePanel('wishlistPanel'); });
+        document.getElementById('uploadBtn').addEventListener('click', () => openModal('uploadModal'));
+        document.getElementById('submitUpload').addEventListener('click', handleUpload);
+        document.getElementById('signOutBtn').addEventListener('click', signOut);
+        document.getElementById('myBooksBtn').addEventListener('click', async () => { await loadMyUploads(); openModal('myUploadsModal'); });
+
+        // File name display
+        document.getElementById('pdfFile').addEventListener('change', e => {
+          document.getElementById('pdfFileName').textContent = e.target.files[0]?.name || '';
+        });
+        document.getElementById('coverFile').addEventListener('change', e => {
+          document.getElementById('coverFileName').textContent = e.target.files[0]?.name || '';
+        });
+
+        // Drag & drop
+        ['pdfUploadArea', 'coverUploadArea'].forEach(id => {
+          const area = document.getElementById(id);
+          area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
+          area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
+          area.addEventListener('drop', e => {
+            e.preventDefault();
+            area.classList.remove('drag-over');
+            const file = e.dataTransfer.files?.[0];
+            const input = area.querySelector('input');
+            if (file && input) {
+              const dataTransfer = new DataTransfer();
+              dataTransfer.items.add(file);
+              input.files = dataTransfer.files;
+              input.dispatchEvent(new Event('change'));
+            }
+          });
+        });
+    }
+    init();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PageTurner — Sign In</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="env.js"></script>
+  <style>
+    .auth-bg-art {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: var(--bg-primary);
+      overflow: hidden;
+    }
+
+    .auth-bg-art::before {
+      content: '';
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+      top: -200px;
+      right: -100px;
+    }
+
+    .auth-bg-art::after {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+      bottom: -150px;
+      left: -100px;
+    }
+
+    .auth-card {
+      animation: fadeUp 0.5s ease both;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .auth-panel {
+      display: none;
+    }
+
+    .auth-panel.active {
+      display: block;
+    }
+
+    .auth-footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .auth-footer a {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .tagline {
+      font-family: 'IM Fell English', serif;
+      font-size: 0.9rem;
+      font-style: italic;
+      color: var(--text-muted);
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.25rem 0;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .theme-switcher {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .theme-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .theme-dot:hover,
+    .theme-dot.active {
+      border-color: var(--accent);
+      transform: scale(1.15);
+    }
+
+    .theme-dot.light {
+      background: #f8f5f0;
+      box-shadow: inset 0 0 0 1px #ccc;
+    }
+
+    .theme-dot.dark {
+      background: #1a1a24;
+    }
+
+    .theme-dot.vintage {
+      background: #f5e6c8;
+      box-shadow: inset 0 0 0 1px #c4a882;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="auth-bg-art"></div>
+
+  <div class="auth-container">
+    <div class="auth-card">
+
+      <div class="auth-header">
+        <div class="auth-logo">Page<span>Turner</span></div>
+        <p class="tagline">"A reader lives a thousand lives before he dies."</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="signin">Sign In</button>
+        <button class="auth-tab" data-tab="signup">Create Account</button>
+      </div>
+
+      <div class="auth-body">
+        <div id="authError" class="auth-error"></div>
+
+        <!-- SIGN IN -->
+        <div id="signin" class="auth-panel active">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input id="siEmail" type="email" class="form-input" placeholder="you@example.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input id="siPassword" type="password" class="form-input" placeholder="••••••••" />
+          </div>
+          <button id="signinBtn" class="btn btn-primary" style="width:100%;justify-content:center;padding:.75rem;">
+            Sign In
+          </button>
+          <div style="text-align:center;margin-top:.75rem;">
+            <a href="#" id="forgotLink" style="font-size:.82rem;">Forgot password?</a>
+          </div>
+        </div>
+
+        <!-- SIGN UP -->
+        <div id="signup" class="auth-panel">
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input id="suUsername" type="text" class="form-input" placeholder="bookworm42" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input id="suEmail" type="email" class="form-input" placeholder="you@example.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input id="suPassword" type="password" class="form-input" placeholder="min 6 characters" />
+          </div>
+          <button id="signupBtn" class="btn btn-primary" style="width:100%;justify-content:center;padding:.75rem;">
+            Create Account
+          </button>
+        </div>
+
+        <!-- Theme picker -->
+        <div class="divider">Choose your reading mood</div>
+        <div class="theme-switcher">
+          <div class="theme-dot light active" data-theme="light" title="Light"></div>
+          <div class="theme-dot dark" data-theme="dark" title="Dark"></div>
+          <div class="theme-dot vintage" data-theme="vintage" title="Vintage"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { CONFIG, supabaseClient } from './js/config.js';
+
+    // ── Theme ────────────────────────────────────────────────
+    const savedTheme = localStorage.getItem('pt-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    document.querySelectorAll('.theme-dot').forEach(d => {
+      d.classList.toggle('active', d.dataset.theme === savedTheme);
+      d.addEventListener('click', () => {
+        const t = d.dataset.theme;
+        document.documentElement.setAttribute('data-theme', t);
+        localStorage.setItem('pt-theme', t);
+        document.querySelectorAll('.theme-dot').forEach(x => x.classList.toggle('active', x.dataset.theme === t));
+      });
+    });
+
+    // ── Tab switching ────────────────────────────────────────
+    document.querySelectorAll('.auth-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t === tab));
+        document.querySelectorAll('.auth-panel').forEach(p => p.classList.toggle('active', p.id === target));
+        document.getElementById('authError').classList.remove('show');
+      });
+    });
+
+    async function resolveRoute(primary, fallback) {
+      try {
+        const res = await fetch(primary, { method: 'HEAD' });
+        return res.ok ? primary : fallback;
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    async function navigateTo(role) {
+      const [primary, fallback] = role === 'admin'
+        ? ['/admin', '/pages/admin.html']
+        : ['/dashboard', '/pages/dashboard.html'];
+      window.location.href = await resolveRoute(primary, fallback);
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('authError');
+      el.textContent = msg;
+      el.classList.add('show');
+    }
+    function setLoading(btn, loading) {
+      btn.disabled = loading;
+      btn.textContent = loading ? 'Please wait…' : btn.dataset.label;
+    }
+
+    const signinBtn = document.getElementById('signinBtn');
+    const signupBtn = document.getElementById('signupBtn');
+    signinBtn.dataset.label = 'Sign In';
+    signupBtn.dataset.label = 'Create Account';
+
+    // ── Sign In ──────────────────────────────────────────────
+    signinBtn.addEventListener('click', async () => {
+      const email = document.getElementById('siEmail').value.trim();
+      const password = document.getElementById('siPassword').value;
+      if (!email || !password) return showError('Please fill in all fields.');
+      setLoading(signinBtn, true);
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) { showError(error.message); setLoading(signinBtn, false); return; }
+      // Check role
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', user.id).single();
+      await navigateTo(profile?.role);
+    });
+
+    // ── Sign Up ──────────────────────────────────────────────
+    signupBtn.addEventListener('click', async () => {
+      const username = document.getElementById('suUsername').value.trim();
+      const email = document.getElementById('suEmail').value.trim();
+      const password = document.getElementById('suPassword').value;
+      if (!username || !email || !password) return showError('Please fill in all fields.');
+      if (password.length < 6) return showError('Password must be at least 6 characters.');
+      setLoading(signupBtn, true);
+      const { error } = await supabaseClient.auth.signUp({ email, password, options: { data: { username } } });
+      if (error) { showError(error.message); setLoading(signupBtn, false); return; }
+      // Update username in profile
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user) {
+        await supabaseClient.from('profiles').update({ username }).eq('id', user.id);
+        // Check role and navigate if auto-signed in
+        const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', user.id).single();
+        await navigateTo(profile?.role);
+      } else {
+        // Email confirmation required
+        showError('');
+        document.getElementById('authError').style.display = 'none';
+        alert('Account created! Please check your email to verify, then sign in.');
+        document.querySelector('[data-tab="signin"]').click();
+      }
+      setLoading(signupBtn, false);
+    });
+
+    // ── Forgot password ──────────────────────────────────────
+    document.getElementById('forgotLink').addEventListener('click', async e => {
+      e.preventDefault();
+      const email = document.getElementById('siEmail').value.trim();
+      if (!email) return showError('Enter your email first.');
+      const redirectPath = await resolveRoute('/dashboard', '/pages/dashboard.html');
+      await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + redirectPath });
+      showError('');
+      alert('Password reset email sent!');
+    });
+
+    // ── Already logged in ────────────────────────────────────
+    (async () => {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', user.id).single();
+        await navigateTo(profile?.role);
+      }
+    })();
+  </script>
+</body>
+
+</html>
