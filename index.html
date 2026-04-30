@@ -263,62 +263,121 @@
 
     // ── Sign In ──────────────────────────────────────────────
     signinBtn.addEventListener('click', async () => {
+      if (signinBtn.disabled) return; // Prevent multiple clicks
+
       const email = document.getElementById('siEmail').value.trim();
       const password = document.getElementById('siPassword').value;
       if (!email || !password) return showError('Please fill in all fields.');
       setLoading(signinBtn, true);
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) { showError(error.message); setLoading(signinBtn, false); return; }
-      // Check role
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', user.id).single();
-      await navigateTo(profile?.role);
+
+      try {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+          showError(error.message);
+          return;
+        }
+        // Check role
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', user.id).single();
+        await navigateTo(profile?.role);
+      } catch (err) {
+        showError('Sign in failed. Please try again.');
+        console.error('Signin error:', err);
+      } finally {
+        setLoading(signinBtn, false);
+      }
     });
 
     // ── Sign Up ──────────────────────────────────────────────
     signupBtn.addEventListener('click', async () => {
+      if (signupBtn.disabled) return; // Prevent multiple clicks
+
       const username = document.getElementById('suUsername').value.trim();
       const email = document.getElementById('suEmail').value.trim();
       const password = document.getElementById('suPassword').value;
       if (!username || !email || !password) return showError('Please fill in all fields.');
       if (password.length < 6) return showError('Password must be at least 6 characters.');
       setLoading(signupBtn, true);
-      const { error } = await supabaseClient.auth.signUp({ email, password, options: { data: { username } } });
-      if (error) { showError(error.message); setLoading(signupBtn, false); return; }
-      // Update username in profile
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (user) {
-        await supabaseClient.from('profiles').update({ username }).eq('id', user.id);
-        // Check role and navigate if auto-signed in
-        const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', user.id).single();
-        await navigateTo(profile?.role);
-      } else {
-        // Email confirmation required
-        showError('');
-        document.getElementById('authError').style.display = 'none';
-        alert('Account created! Please check your email to verify, then sign in.');
-        document.querySelector('[data-tab="signin"]').click();
+
+      try {
+        const { data, error } = await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { username }
+          }
+        });
+
+        if (error) {
+          showError(error.message);
+          return;
+        }
+
+        if (data.user) {
+          // User was created and signed in
+          const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', data.user.id).single();
+          await navigateTo(profile?.role);
+        } else {
+          // Email confirmation required
+          showError('');
+          document.getElementById('authError').style.display = 'none';
+          alert('Account created! Please check your email to verify, then sign in.');
+          document.querySelector('[data-tab="signin"]').click();
+        }
+      } catch (err) {
+        showError('Signup failed. Please try again.');
+        console.error('Signup error:', err);
+      } finally {
+        setLoading(signupBtn, false);
       }
-      setLoading(signupBtn, false);
     });
 
     // ── Forgot password ──────────────────────────────────────
+    let resetInProgress = false;
     document.getElementById('forgotLink').addEventListener('click', async e => {
       e.preventDefault();
+      if (resetInProgress) return;
+
       const email = document.getElementById('siEmail').value.trim();
       if (!email) return showError('Enter your email first.');
-      const redirectPath = await resolveRoute('/dashboard', '/pages/dashboard.html');
-      await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + redirectPath });
-      showError('');
-      alert('Password reset email sent!');
+
+      resetInProgress = true;
+      try {
+        const redirectPath = await resolveRoute('/dashboard', '/pages/dashboard.html');
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + redirectPath
+        });
+
+        if (error) {
+          showError(error.message);
+        } else {
+          showError('');
+          alert('Password reset email sent!');
+        }
+      } catch (err) {
+        showError('Failed to send reset email. Please try again.');
+        console.error('Password reset error:', err);
+      } finally {
+        resetInProgress = false;
+      }
     });
 
     // ── Already logged in ────────────────────────────────────
+    let authCheckInProgress = false;
     (async () => {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', user.id).single();
-        await navigateTo(profile?.role);
+      if (authCheckInProgress) return;
+      authCheckInProgress = true;
+
+      try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', user.id).single();
+          await navigateTo(profile?.role);
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err);
+      } finally {
+        authCheckInProgress = false;
       }
     })();
   </script>

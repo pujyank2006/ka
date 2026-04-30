@@ -27,7 +27,7 @@ BEGIN
   VALUES (
     NEW.id,
     NEW.email,
-    SPLIT_PART(NEW.email, '@', 1)
+    COALESCE(NEW.raw_user_meta_data->>'username', SPLIT_PART(NEW.email, '@', 1))
   );
   RETURN NEW;
 END;
