@@ -30,7 +30,12 @@ if (!CONFIG.SUPABASE_URL || CONFIG.SUPABASE_URL.includes('your-project') ||
 }
 
 // Initialize Supabase client
-const { createClient } = supabase;
-const supabaseClient = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+let supabaseClient = null;
+if (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY) {
+  const { createClient } = supabase;
+  supabaseClient = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+} else {
+  console.error('Supabase config is missing. Please provide SUPABASE_URL and SUPABASE_ANON_KEY via env.js or Vercel environment variables.');
+}
 
 export { CONFIG, supabaseClient };
