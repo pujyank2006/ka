@@ -279,7 +279,7 @@
             <td><span class="status-badge ${r.status}">${r.status}</span></td>
             <td>${new Date(r.created_at).toLocaleDateString()}</td>
             <td>
-              ${r.status === 'pending' ? `<button class="btn btn-primary btn-sm" onclick="openReview('${r.id}')">Review</button>` : '-'}
+              ${r.status === 'pending' ? `<button class="btn btn-primary btn-sm" onclick="openReview('${r.id}')">Review & Accept</button>` : '-'}
             </td>
           </tr>
         `).join('')}</tbody>
