@@ -20,7 +20,9 @@
 4. Add any required RLS/storage policies as noted in `supabase_schema.sql`.
 
 ### 2. Configure credentials
-Open `js/config.js` and replace placeholder values with your Supabase/EmailJS credentials for local development.
+This project uses a generated config module on build.
+
+Set these environment variables in Vercel:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
@@ -29,14 +31,12 @@ Open `js/config.js` and replace placeholder values with your Supabase/EmailJS cr
 - `EMAILJS_TEMPLATE_ID` (optional)
 - `EMAILJS_PUBLIC_KEY` (optional)
 
-> `env.js` is ignored by git for local safety, so it is not deployed automatically. For Vercel deployment, the build generates a config module from environment variables.
-
 ### 2a. Vercel deployment
-1. Add the same environment variables in the Vercel dashboard under Project → Settings → Environment Variables.
+1. Add the above environment variables in the Vercel dashboard under Project → Settings → Environment Variables.
 2. Ensure `SUPABASE_URL` and `SUPABASE_ANON_KEY` are defined for production.
-3. Vercel will generate `js/generated-config.js` at deploy time using `npm run build` / `vercel-build`.
+3. Vercel will generate `js/generated-config.js` at deploy time using `npm run build` or `vercel-build`.
 
-> If you run locally without replacing these values, the app will warn in the browser console.
+> Local dev should also use `npm run build` before serving the app if you want the generated config module to exist.
 ### 3. Run a local static server
 This is a static HTML/JS project, so you can use any simple server.
 
