@@ -25,15 +25,6 @@
       font-size: 1.2rem;
       font-weight: 600;
     }
-    .reader-controls {
-      display: flex;
-      gap: 0.5rem;
-    }
-    .reader-iframe {
-      flex: 1;
-      border: none;
-      width: 100%;
-    }
     .loading {
       display: flex;
       justify-content: center;
@@ -79,12 +70,8 @@
   <div class="reader-container">
     <div class="reader-header">
       <div class="reader-title" id="bookTitle">Loading...</div>
-      <div class="reader-controls">
-        <button class="btn btn-outline btn-sm" id="fullscreenBtn">⛶ Fullscreen</button>
-      </div>
     </div>
     <div id="loading" class="loading">Loading book...</div>
-    <iframe id="pdfViewer" class="reader-iframe" style="display: none;"></iframe>
   </div>
 
   <script type="module">
@@ -132,17 +119,9 @@
           return;
         }
 
-        document.getElementById('loading').style.display = 'none';
-        const iframe = document.getElementById('pdfViewer');
-        iframe.src = signed.signedUrl;
-        iframe.style.display = 'block';
-
-        // Fullscreen button
-        document.getElementById('fullscreenBtn').addEventListener('click', () => {
-          if (iframe.requestFullscreen) {
-            iframe.requestFullscreen();
-          }
-        });
+        // Open PDF in new tab
+        window.open(signed.signedUrl, '_blank');
+        document.getElementById('loading').textContent = 'PDF opened in new tab. You can close this window.';
 
       } catch (err) {
         showToast('Error loading book: ' + err.message, 'error');
