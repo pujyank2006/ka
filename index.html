@@ -246,6 +246,22 @@
       window.location.href = await resolveRoute(primary, fallback);
     }
 
+    // Rate limiting protection
+    let lastRequestTime = 0;
+    const MIN_REQUEST_INTERVAL = 1000; // 1 second between requests
+
+    async function rateLimitedRequest(requestFn) {
+      const now = Date.now();
+      const timeSinceLastRequest = now - lastRequestTime;
+
+      if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+        await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest));
+      }
+
+      lastRequestTime = Date.now();
+      return await requestFn();
+    }
+
     function showError(msg) {
       const el = document.getElementById('authError');
       el.textContent = msg;
@@ -271,11 +287,19 @@
       setLoading(signinBtn, true);
 
       try {
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) {
-          showError(error.message);
+        const result = await rateLimitedRequest(async () => {
+          return await supabaseClient.auth.signInWithPassword({ email, password });
+        });
+
+        if (result.error) {
+          if (result.error.message?.includes('rate limit') || result.error.status === 429) {
+            showError('Too many requests. Please wait a moment and try again.');
+          } else {
+            showError(result.error.message);
+          }
           return;
         }
+
         // Check role
         const { data: { user } } = await supabaseClient.auth.getUser();
         const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', user.id).single();
@@ -300,22 +324,28 @@
       setLoading(signupBtn, true);
 
       try {
-        const { data, error } = await supabaseClient.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { username }
-          }
+        const result = await rateLimitedRequest(async () => {
+          return await supabaseClient.auth.signUp({
+            email,
+            password,
+            options: {
+              data: { username }
+            }
+          });
         });
 
-        if (error) {
-          showError(error.message);
+        if (result.error) {
+          if (result.error.message?.includes('rate limit') || result.error.status === 429) {
+            showError('Too many requests. Please wait a moment and try again.');
+          } else {
+            showError(result.error.message);
+          }
           return;
         }
 
-        if (data.user) {
+        if (result.data.user) {
           // User was created and signed in
-          const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', data.user.id).single();
+          const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', result.data.user.id).single();
           await navigateTo(profile?.role);
         } else {
           // Email confirmation required
@@ -344,12 +374,18 @@
       resetInProgress = true;
       try {
         const redirectPath = await resolveRoute('/dashboard', '/pages/dashboard.html');
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + redirectPath
+        const result = await rateLimitedRequest(async () => {
+          return await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + redirectPath
+          });
         });
 
-        if (error) {
-          showError(error.message);
+        if (result.error) {
+          if (result.error.message?.includes('rate limit') || result.error.status === 429) {
+            showError('Too many requests. Please wait a moment and try again.');
+          } else {
+            showError(result.error.message);
+          }
         } else {
           showError('');
           alert('Password reset email sent!');
@@ -362,24 +398,25 @@
       }
     });
 
-    // ── Already logged in ────────────────────────────────────
-    let authCheckInProgress = false;
-    (async () => {
-      if (authCheckInProgress) return;
-      authCheckInProgress = true;
-
-      try {
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', user.id).single();
-          await navigateTo(profile?.role);
-        }
-      } catch (err) {
-        console.error('Auth check failed:', err);
-      } finally {
-        authCheckInProgress = false;
+    // Global error handling for rate limits
+    window.addEventListener('unhandledrejection', event => {
+      if (event.reason?.message?.includes('rate limit') ||
+          event.reason?.status === 429 ||
+          event.reason?.code === 'too_many_requests') {
+        console.warn('Rate limit detected, preventing error propagation');
+        event.preventDefault();
+        showError('Too many requests. Please wait a moment and try again.');
       }
-    })();
+    });
+
+    // Prevent multiple form submissions
+    document.addEventListener('submit', e => {
+      const form = e.target;
+      const submitBtn = form.querySelector('button[type="submit"], button:not([type])');
+      if (submitBtn?.disabled) {
+        e.preventDefault();
+      }
+    });
   </script>
 </body>
 

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PageTurner — Reader</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .reader-container {
+      height: calc(100vh - 60px);
+      display: flex;
+      flex-direction: column;
+    }
+    .reader-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .reader-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    .reader-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .reader-iframe {
+      flex: 1;
+      border: none;
+      width: 100%;
+    }
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-brand">Page<span>Turner</span></div>
+
+    <div class="navbar-center">
+      <button class="btn btn-ghost" id="backBtn">← Back to Dashboard</button>
+    </div>
+
+    <div class="navbar-actions">
+      <!-- Theme Toggle -->
+      <div class="theme-toggle">
+        <button class="theme-btn" data-theme="light">☀ Light</button>
+        <button class="theme-btn" data-theme="dark">🌙 Dark</button>
+        <button class="theme-btn" data-theme="vintage">📜 Vintage</button>
+      </div>
+
+      <!-- User Menu -->
+      <div class="dropdown">
+        <div class="avatar-btn" data-dropdown-trigger id="avatarBtn">U</div>
+        <div class="dropdown-menu">
+          <div class="dropdown-item" id="profileLabel"
+            style="font-weight:700;cursor:default;color:var(--text-primary);">My Account</div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" id="signOutBtn">🚪 Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="reader-container">
+    <div class="reader-header">
+      <div class="reader-title" id="bookTitle">Loading...</div>
+      <div class="reader-controls">
+        <button class="btn btn-outline btn-sm" id="fullscreenBtn">⛶ Fullscreen</button>
+      </div>
+    </div>
+    <div id="loading" class="loading">Loading book...</div>
+    <iframe id="pdfViewer" class="reader-iframe" style="display: none;"></iframe>
+  </div>
+
+  <script type="module">
+    import { initAuth, getCurrentUser, signOut } from '../js/auth.js';
+    import { initTheme, applyTheme, setupThemeButtons, showToast, setupDropdowns } from '../js/ui.js';
+    import { supabaseClient } from '../js/config.js';
+
+    async function init() {
+      initTheme();
+      setupThemeButtons();
+      setupDropdowns();
+
+      const user = await initAuth();
+      if (!user) {
+        window.location.href = '../index.html';
+        return;
+      }
+
+      document.getElementById('avatarBtn').textContent = user.email.charAt(0).toUpperCase();
+      document.getElementById('profileLabel').textContent = user.email;
+
+      document.getElementById('signOutBtn').addEventListener('click', signOut);
+      document.getElementById('backBtn').addEventListener('click', () => window.location.href = '../pages/dashboard.html');
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const bookId = urlParams.get('id');
+      if (!bookId) {
+        showToast('No book ID provided', 'error');
+        return;
+      }
+
+      try {
+        const { data: book, error } = await supabaseClient.from('books').select('*').eq('id', bookId).single();
+        if (error || !book) {
+          showToast('Book not found', 'error');
+          return;
+        }
+
+        document.getElementById('bookTitle').textContent = `${book.title} by ${book.author}`;
+
+        // Create signed URL for PDF
+        const { data: signed, error: signedError } = await supabaseClient.storage.from('books-pdf').createSignedUrl(book.pdf_url, 3600); // 1 hour
+        if (signedError || !signed?.signedUrl) {
+          showToast('Failed to load book', 'error');
+          return;
+        }
+
+        document.getElementById('loading').style.display = 'none';
+        const iframe = document.getElementById('pdfViewer');
+        iframe.src = signed.signedUrl;
+        iframe.style.display = 'block';
+
+        // Fullscreen button
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+          if (iframe.requestFullscreen) {
+            iframe.requestFullscreen();
+          }
+        });
+
+      } catch (err) {
+        showToast('Error loading book: ' + err.message, 'error');
+      }
+    }
+
+    init();
+  </script>
+</body>
+
+</html>
