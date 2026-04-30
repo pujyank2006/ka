@@ -189,7 +189,11 @@
       await loadWishlist();
       await loadBooks();
       setupEvents();
-      emailjs.init(CONFIG.EMAILJS_PUBLIC_KEY);
+      if (CONFIG.EMAILJS_PUBLIC_KEY) {
+        emailjs.init(CONFIG.EMAILJS_PUBLIC_KEY);
+      } else {
+        console.warn('EmailJS public key is missing; admin email notifications are disabled.');
+      }
     }
 
     // ── Genre Filter ───────────────────────────────────────────
@@ -373,18 +377,22 @@
           });
           if (reqErr) throw reqErr;
 
-          // Email admin via EmailJS
-          try {
-            await emailjs.send(CONFIG.EMAILJS_SERVICE_ID, CONFIG.EMAILJS_TEMPLATE_ID, {
-              to_email: CONFIG.ADMIN_EMAIL,
-              from_name: currentProfile?.username || currentUser.email,
-              book_title: title,
-              book_author: author,
-              book_genre: genres.join(', '),
-              requester_email: currentUser.email,
-              message: `A new book upload request has been submitted.\n\nTitle: ${title}\nAuthor: ${author}\nGenres: ${genres.join(', ')}\nSubmitted by: ${currentUser.email}`
-            });
-          } catch (emailErr) { console.warn('Email notification failed:', emailErr); }
+          // Email admin via EmailJS if configured
+          if (CONFIG.EMAILJS_SERVICE_ID && CONFIG.EMAILJS_TEMPLATE_ID && CONFIG.EMAILJS_PUBLIC_KEY && CONFIG.ADMIN_EMAIL) {
+            try {
+              await emailjs.send(CONFIG.EMAILJS_SERVICE_ID, CONFIG.EMAILJS_TEMPLATE_ID, {
+                to_email: CONFIG.ADMIN_EMAIL,
+                from_name: currentProfile?.username || currentUser.email,
+                book_title: title,
+                book_author: author,
+                book_genre: genres.join(', '),
+                requester_email: currentUser.email,
+                message: `A new book upload request has been submitted.\n\nTitle: ${title}\nAuthor: ${author}\nGenres: ${genres.join(', ')}\nSubmitted by: ${currentUser.email}`
+              });
+            } catch (emailErr) { console.warn('Email notification failed:', emailErr); }
+          } else {
+            console.warn('Email notification skipped: EmailJS config is incomplete.');
+          }
 
           closeModal('uploadModal');
           showToast('Book submitted for review! Admin will be notified. ✅', 'success', 5000);
