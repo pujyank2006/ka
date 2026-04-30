@@ -27,9 +27,6 @@ Set these environment variables in Vercel:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `ADMIN_EMAIL`
-- `EMAILJS_SERVICE_ID` (optional)
-- `EMAILJS_TEMPLATE_ID` (optional)
-- `EMAILJS_PUBLIC_KEY` (optional)
 
 ### 2a. Vercel deployment
 1. Add the above environment variables in the Vercel dashboard under Project → Settings → Environment Variables.

@@ -4,10 +4,7 @@ const path = require('path');
 const keys = [
   'SUPABASE_URL',
   'SUPABASE_ANON_KEY',
-  'ADMIN_EMAIL',
-  'EMAILJS_SERVICE_ID',
-  'EMAILJS_TEMPLATE_ID',
-  'EMAILJS_PUBLIC_KEY',
+  'ADMIN_EMAIL'
 ];
 
 const env = {};
