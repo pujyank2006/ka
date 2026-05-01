@@ -413,6 +413,31 @@
   `;
     }
 
+    async function parseCoverObjectPath(url) {
+      if (!url) return null;
+      try {
+        const parsedUrl = new URL(url);
+        const match = parsedUrl.pathname.match(/\/storage\/v1\/object\/public\/book-covers\/(.+)$/);
+        if (match) return decodeURIComponent(match[1]);
+      } catch (err) {
+        // ignore invalid URL parsing
+      }
+
+      const prefix = 'book-covers/';
+      const idx = url.indexOf(prefix);
+      if (idx !== -1) {
+        return url.slice(idx + prefix.length);
+      }
+
+      return null;
+    }
+
+    async function deleteStorageObject(bucket, objectPath) {
+      if (!objectPath) return { error: null };
+      const { error } = await supabaseClient.storage.from(bucket).remove([objectPath]);
+      return { error };
+    }
+
     window.confirmDeleteBook = function (id) {
       currentDeleteId = id;
       openModal('deleteModal');
@@ -420,9 +445,35 @@
 
     document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
       if (!currentDeleteId) return;
-      await supabaseClient.from('books').delete().eq('id', currentDeleteId);
+
+      const { data: book, error: fetchErr } = await supabaseClient.from('books').select('pdf_url, cover_url').eq('id', currentDeleteId).single();
+      if (fetchErr || !book) {
+        showToast('Unable to find book for deletion', 'error');
+        return;
+      }
+
+      const pdfPath = book.pdf_url;
+      const coverPath = await parseCoverObjectPath(book.cover_url);
+
+      const storageResults = [];
+      if (pdfPath) storageResults.push(await deleteStorageObject('books-pdf', pdfPath));
+      if (coverPath) storageResults.push(await deleteStorageObject('book-covers', coverPath));
+
+      const { error: deleteErr } = await supabaseClient.from('books').delete().eq('id', currentDeleteId);
+      if (deleteErr) {
+        showToast('Failed to delete book record: ' + deleteErr.message, 'error');
+        return;
+      }
+
       closeModal('deleteModal');
-      showToast('Book deleted', 'success');
+
+      const storageErrors = storageResults.filter(r => r.error);
+      if (storageErrors.length) {
+        showToast('Book deleted, but asset cleanup had issues', 'warning', 6000);
+      } else {
+        showToast('Book deleted successfully', 'success');
+      }
+
       loadAllBooks();
       loadOverview();
     });
